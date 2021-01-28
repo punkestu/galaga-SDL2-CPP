@@ -91,6 +91,11 @@ public:
     }
 
     std::vector<vect2d>* getBullets(){return &bullets;}
+    SDL_Rect getBody(){return {body[0].x,body[1].y,body[0].w,body[0].h+body[1].h};}
+};
+
+class enemy{
+private:
 
 };
 
