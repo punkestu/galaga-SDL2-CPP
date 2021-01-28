@@ -10,14 +10,14 @@ class player{
 private:
     SDL_Rect body[2];
     std::vector<vect2d> bullets;
-    bool left,right,shoot;
+    bool left,right,shoot,skey;
     int start;
 public:
     player(){
         body[0] = {210, 440, 60, 20};
         body[1] = {230, 420, 20, 20};
-        left = right = shoot = 0;
-        start = 1000;
+        left = right = shoot = skey = 0;
+        start = 999999;
     }
 
     void control(SDL_Event* event){
@@ -29,13 +29,7 @@ public:
                 right = 1;
             }
             if(event->key.keysym.sym == SDLK_s){
-                if(SDL_GetTicks()-start>=1000){
-                    std::cout<<SDL_GetTicks()-start<<std::endl;
-                    shoot = 1;
-                    start = SDL_GetTicks();
-                }else{
-                    shoot = 0;
-                }
+                skey = 1;
             }
 
         }
@@ -47,7 +41,7 @@ public:
                 right = 0;
             }
             if(event->key.keysym.sym == SDLK_s){
-                shoot = 0;
+                skey = 0;
             }
         }
     }
@@ -65,6 +59,17 @@ public:
         if(right){
             body[0].x+=5;
             body[1].x+=5;
+        }
+        if(skey){
+            if(SDL_GetTicks()-start>=500){
+                //std::cout<<SDL_GetTicks()-start<<std::endl;
+                shoot = 1;
+                start = SDL_GetTicks();
+            }else{
+                shoot = 0;
+            }
+        }else{
+            shoot = 0;
         }
 
         if(shoot){
@@ -124,7 +129,7 @@ int main(int argc, char* argv[])
 
         unsigned int i = 0;
         for(std::vector<vect2d>::iterator it = mplayer.getBullets()->begin(); i < mplayer.getBullets()->size() ; it++){
-            if(it->y<=120){
+            if(it->y<=20){
                 mplayer.getBullets()->erase(it);
                 it--;
                 i--;
