@@ -1,6 +1,8 @@
 #include <SDL.h>
 #include <iostream>
 #include <vector>
+#include <conio.h>
+#include <time.h>
 
 struct vect2d{
     int x,y;
@@ -52,16 +54,16 @@ public:
         for(unsigned int i = 0; i < bullets.size(); i++){
             bullets[i].y-=2;
         }
-        if(left){
+        if(left && body[0].x>=0+20){
             body[0].x-=5;
             body[1].x-=5;
         }
-        if(right){
+        if(right && body[0].x+60<=460){
             body[0].x+=5;
             body[1].x+=5;
         }
         if(skey){
-            if(SDL_GetTicks()-start>=500){
+            if(SDL_GetTicks()-start>=1000){
                 //std::cout<<SDL_GetTicks()-start<<std::endl;
                 shoot = 1;
                 start = SDL_GetTicks();
@@ -86,7 +88,7 @@ public:
             SDL_Rect bullet = {bullets[i].x,bullets[i].y,10,10};
             SDL_SetRenderDrawColor(renderer, 255,255,0,255);
             SDL_RenderFillRect(renderer, &bullet);
-            std::cout<<bullets.size()<<std::endl;
+            //std::cout<<bullets.size()<<std::endl;
         }
     }
 
@@ -98,15 +100,18 @@ class enemy{
 private:
     SDL_Rect body;
     std::vector<vect2d> bullets;
-    bool left,right,shoot;
+    bool left,right;
     int start, moving, movHor;
+    int anchor, eNum;
 public:
-    enemy(vect2d startPos, int moveD){
+    enemy(int anchor, int eNum, vect2d startPos, int moveD){
+        this->anchor = anchor;
+        this->eNum = eNum;
         body.x = startPos.x;
         body.y = startPos.y;
-        body.w = 60;
-        body.h = 60;
-        left = right = shoot = 0;
+        body.w = 30;
+        body.h = 30;
+        left = right = 0;
         if(moveD == 1){
             right = 1;
         }else{
@@ -117,38 +122,47 @@ public:
         movHor = SDL_GetTicks();
     }
 
-    void moveF(){
-        body.y+=70;
-    }
+    void update(bool shoot){
+        for(unsigned int i = 0; i < bullets.size(); i++){
+            bullets[i].y+=2;
+        }
 
-    void update(){
         if(SDL_GetTicks()-moving >= 10*1000){
-            moveF();
+            //body.y+=70;
             moving = SDL_GetTicks();
         }
         if(SDL_GetTicks()-movHor >= 250){
-            SDL_Log("move");
             if(right){
                 body.x+=10;
-                if(body.x+body.h >= 470){
+                if(body.x+body.h >= 480-(2*30*(eNum-anchor))){
                     right = 0;
                     left = 1;
                 }
             }
             if(left){
                 body.x-=10;
-                if(body.x <= 10){
+                if(body.x <= 0+(2*30*anchor)+10){
                     right = 1;
                     left = 0;
                 }
             }
             movHor = SDL_GetTicks();
         }
+        if(shoot){
+            if(SDL_GetTicks()-start>=2000){
+                bullets.push_back({body.x+body.w/2+5,body.y+body.h});
+                start = SDL_GetTicks();
+            }
+        }
     }
 
     void render(SDL_Renderer* renderer){
         SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
         SDL_RenderFillRect(renderer, &body);
+        for(unsigned int i = 0; i < bullets.size(); i++){
+            SDL_Rect bullet = {bullets[i].x,bullets[i].y,10,10};
+            SDL_RenderFillRect(renderer, &bullet);
+        }
     }
 
     std::vector<vect2d>* getBullets(){return &bullets;}
@@ -163,11 +177,34 @@ int main(int argc, char* argv[])
 
     player mplayer = player();
     std::vector<enemy*> enemies;
-    enemies.push_back(new enemy({{10,10},1}));
 
     SDL_Event event;
-    int start = SDL_GetTicks();
+    int start;
+    int p;
+    bool dead;
+    bool retry;
+
+    re:
+    start = SDL_GetTicks();
+    p = 0;
+    dead = false;
+    retry = false;
+
+    for(int i = 0; i < 7; i++){
+        enemies.push_back(new enemy(i,6,{i*30+i*30+20,20},-1));
+    }
+    for(int i = 0; i < 7; i++){
+        enemies.push_back(new enemy(i,6,{i*30+i*30+20,60},1));
+    }
+    for(int i = 0; i < 7; i++){
+        enemies.push_back(new enemy(i,6,{i*30+i*30+20,100},-1));
+    }
+    for(int i = 0; i < 7; i++){
+        enemies.push_back(new enemy(i,6,{i*30+i*30+20,140},1));
+    }
+
     while(true){
+        srand(time(NULL)+rand());
 
         //control
         SDL_PollEvent(&event);
@@ -178,12 +215,49 @@ int main(int argc, char* argv[])
         //
 
         //update
-        if(SDL_GetTicks()-start>=1000/60){
-            mplayer.update();
-            for(unsigned int i = 0; i < enemies.size(); i++){
-                enemies[i]->update();
+        if(!dead){
+            if(SDL_GetTicks()-start>=1000/60){
+                mplayer.update();
+                for(unsigned int i = 0; i < enemies.size(); i++){
+                    if((int)i >= ((int)(enemies.size()/7)-1)*7){
+                        for(int j = 0; j < 25; j++){
+                            p = rand();
+                        }
+                        if(p%100 >= 99){
+                            enemies[i]->update(true);
+                        }else{
+                            enemies[i]->update(false);
+                        }
+                    }else{
+                        enemies[i]->update(false);
+                    }
+                }
+                if(enemies.size()==0){
+                    if(event.type == SDL_KEYDOWN){
+                        if(event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_RETURN){
+                            break;
+                        }
+                        if(event.key.keysym.sym == SDLK_r){
+                            retry = true;
+                            break;
+                        }
+                    }
+                }
+                start = SDL_GetTicks();
             }
-            start = SDL_GetTicks();
+        }else{
+            for(unsigned int i = 0; i < enemies.size(); i++){
+                enemies[i]->getBullets()->clear();
+            }
+            if(event.type == SDL_KEYDOWN){
+                if(event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_RETURN){
+                    break;
+                }
+                if(event.key.keysym.sym == SDLK_r){
+                    retry = true;
+                    break;
+                }
+            }
         }
         //
 
@@ -191,7 +265,9 @@ int main(int argc, char* argv[])
         SDL_SetRenderDrawColor(renderer, 0,0,0,255);
         SDL_RenderClear(renderer);
 
-        mplayer.render(renderer);
+        if(!dead){
+            mplayer.render(renderer);
+        }
         for(unsigned int i = 0; i < enemies.size(); i++){
             enemies[i]->render(renderer);
         }
@@ -204,11 +280,11 @@ int main(int argc, char* argv[])
                 it--;
                 i--;
             }
-            for(unsigned int i = 0; i < enemies.size(); i++){
-                if(it->x<=enemies[i]->getBody().x+60&&it->x+10>=enemies[i]->getBody().x){
-                    if(it->y<=enemies[i]->getBody().y+60){
-                        delete enemies[i];
-                        enemies.clear();
+            for(std::vector<enemy*>::iterator ite = enemies.begin(); ite != enemies.end(); ite++){
+                if(it->x<=(*ite)->getBody().x+(*ite)->getBody().w&&it->x+10>=(*ite)->getBody().x){
+                    if(it->y<=(*ite)->getBody().y+(*ite)->getBody().h && it->y>=(*ite)->getBody().y){
+                        delete *ite;
+                        enemies.erase(ite);
                         mplayer.getBullets()->erase(it);
                         it--;
                         i--;
@@ -218,6 +294,26 @@ int main(int argc, char* argv[])
             }
             i++;
         }
+        for(unsigned int ene = 0; ene < enemies.size(); ene++){
+            i=0;
+            for(std::vector<vect2d>::iterator it = enemies[ene]->getBullets()->begin(); i < enemies[ene]->getBullets()->size() ; it++){
+                if(it->y>=465){
+                    //std::cout<<"pop"<<std::endl;
+                    enemies[ene]->getBullets()->erase(it);
+                    it--;
+                    i--;
+                }
+                if(it->x<mplayer.getBody().x+mplayer.getBody().w && it->x+10>mplayer.getBody().x){
+                    if(it->y<=mplayer.getBody().y+mplayer.getBody().h && it->y+10>=mplayer.getBody().y+20){
+                        dead = true;
+                        enemies[ene]->getBullets()->erase(it);
+                        it--;
+                        i--;
+                    }
+                }
+                i++;
+            }
+        }
 
         SDL_RenderPresent(renderer);
     }
@@ -225,6 +321,11 @@ int main(int argc, char* argv[])
     for(unsigned int i = 0; i < enemies.size(); i++){
         delete enemies[i];
         enemies.clear();
+    }
+    mplayer.getBullets()->clear();
+
+    if(retry){
+        goto re;
     }
 
     SDL_DestroyRenderer(renderer);
