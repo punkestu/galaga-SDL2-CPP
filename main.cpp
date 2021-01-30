@@ -82,7 +82,9 @@ public:
 
     void render(SDL_Renderer* renderer){
         SDL_SetRenderDrawColor(renderer, 255,255,255,255);
-        SDL_RenderFillRects(renderer, body, 2);
+        SDL_RenderFillRect(renderer, &body[1]);
+        SDL_SetRenderDrawColor(renderer, 0,0,255,255);
+        SDL_RenderFillRect(renderer, &body[0]);
 
         for(unsigned int i = 0; i < bullets.size(); i++){
             SDL_Rect bullet = {bullets[i].x,bullets[i].y,10,10};
