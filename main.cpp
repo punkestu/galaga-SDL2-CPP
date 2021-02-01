@@ -129,8 +129,8 @@ public:
             bullets[i].y+=2;
         }
 
-        if(SDL_GetTicks()-moving >= 10*1000){
-            //body.y+=70;
+        if(SDL_GetTicks()-moving >= 15*1000){
+            body.y+=40;
             moving = SDL_GetTicks();
         }
         if(SDL_GetTicks()-movHor >= 250){
@@ -298,6 +298,10 @@ int main(int argc, char* argv[])
         }
         for(unsigned int ene = 0; ene < enemies.size(); ene++){
             i=0;
+            if(enemies[ene]->getBody().y+enemies[ene]->getBody().h>=mplayer.getBody().y){
+                dead = true;
+            }
+
             for(std::vector<vect2d>::iterator it = enemies[ene]->getBullets()->begin(); i < enemies[ene]->getBullets()->size() ; it++){
                 if(it->y>=465){
                     //std::cout<<"pop"<<std::endl;
